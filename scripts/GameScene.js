@@ -1,4 +1,4 @@
-import {CARDS_ID, COLS, NUMBER_CARDS, ROWS} from "./config.js";
+import {CARDS_ID, COLS, NUMBER_CARDS, NUMBER_ID, NUMBER_REPETITIONS, ROWS} from "./config.js";
 import {Card} from "./Card.js";
 
 export default class GameScene extends Phaser.Scene {
@@ -35,8 +35,8 @@ export default class GameScene extends Phaser.Scene {
 
         let numberCard = 0;
         this.shuffle();
-        for (let i = 0; i < COLS; i++) {
-            for (let j = 0; j < ROWS; j++) {
+        for (let i = 0; i < NUMBER_ID; i++) {
+            for (let j = 0; j < NUMBER_REPETITIONS; j++) {
                 const card = new Card(this, position[numberCard].x, position[numberCard].y, "card" + CARDS_ID.pop());
                 this.listGameCards.push(card);
                 numberCard++;
