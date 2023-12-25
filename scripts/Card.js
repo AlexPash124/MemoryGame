@@ -1,8 +1,21 @@
 export class Card extends Phaser.GameObjects.Sprite {
-    constructor(scene, positionX, positionY, texture = "card") {
-        super(scene, positionX, positionY, texture);
+    isOpen = false;
+    constructor(scene, positionX, positionY, value) {
+        super(scene, positionX, positionY, "card");
+        this.value = value;
         this.scene = scene;
         this.setOrigin(0, 0);
         this.scene.add.existing(this);
+        this.setInteractive();
+    }
+
+    open() {
+        this.disableInteractive();
+        this.setTexture("card" + this.value);
+    }
+
+    closeCard() {
+        this.setTexture("card");
+        this.setInteractive();
     }
 }

@@ -1,13 +1,15 @@
 import {CARDS_ID, COLS, NUMBER_CARDS, NUMBER_ID, NUMBER_REPETITIONS, ROWS} from "./config.js";
 import {Card} from "./Card.js";
+import setAnimationTimeout from "./utils.js";
 
 export default class GameScene extends Phaser.Scene {
     constructor() {
         super("MainGame");
     }
 
-    listBackCards = [];
+    openCards = [];
     listGameCards = [];
+    numberOpenCards = 0;
     preload = () => {
         this.load.image("bg", "assets/img/back/back.jpg");
         this.load.image("card", "assets/img/cards/wrapper_card.png");
@@ -28,20 +30,17 @@ export default class GameScene extends Phaser.Scene {
 
     createCards() {
         const position = this.getCardsPositions();
-        for (let i = 0; i < NUMBER_CARDS; i++) {
-            const card = new Card(this, position[i].x, position[i].y);
-            this.listBackCards.push(card);
-        }
-
         let numberCard = 0;
         this.shuffle();
         for (let i = 0; i < NUMBER_ID; i++) {
             for (let j = 0; j < NUMBER_REPETITIONS; j++) {
-                const card = new Card(this, position[numberCard].x, position[numberCard].y, "card" + CARDS_ID.pop());
+                const card = new Card(this, position[numberCard].x, position[numberCard].y, CARDS_ID.pop());
                 this.listGameCards.push(card);
                 numberCard++;
             }
         }
+
+        this.addEventCards();
     }
 
     getCardsPositions = () => {
@@ -70,7 +69,89 @@ export default class GameScene extends Phaser.Scene {
         return Math.floor(Math.random() * Math.floor(n));
     }
 
-    shuffle () {
+    shuffle() {
         CARDS_ID.sort(() => Math.round(Math.random() * 100) - 50);
+    }
+
+    async addEventCards() {
+        this.listGameCards.forEach(card => {
+            card.on("pointerdown", async () => {
+                //card.open();
+                this.flipCardAnimationOpen(card);
+                this.openCards.push(card);
+                if (this.openCards.length > 1) {
+                    if (this.openCards[0].value !== this.openCards[1].value) {
+                        this.disableInteractiveCard();
+                        await setAnimationTimeout(800);
+                        this.closeAnimationCard(this.openCards[0]);
+                        this.closeAnimationCard(this.openCards[1]);
+                        this.openCards.length = 0;
+
+                    } else {
+                        this.openCards[0].isOpen = true;
+                        this.openCards[1].isOpen = true;
+
+                        this.disableInteractiveCard();
+                        await setAnimationTimeout(800);
+                        this.enableInteractiveCard();
+                        this.openCards.length = 0;
+                        this.numberOpenCards++;
+                        if (this.numberOpenCards === NUMBER_ID) {
+                            await setAnimationTimeout(800);
+                            this.enableInteractiveCard();
+                            this.winn();
+                        }
+                    }
+                }
+            })
+        })
+    }
+
+    winn() {
+        this.listGameCards.forEach(card => {
+            card.closeCard();
+            card.isOpen = false;
+        });
+    }
+
+    disableInteractiveCard() {
+        this.listGameCards.forEach(card => {
+            card.disableInteractive();
+        });
+    }
+
+    enableInteractiveCard() {
+        this.listGameCards.forEach(card => {
+            if (!card.isOpen) card.setInteractive();
+        });
+    }
+
+    flipCardAnimationOpen(el) {
+        const tween = el.scene.tweens.add({
+            targets: el,
+            scaleX: 0,
+            ease: 'easeInOutCirc',
+            duration: 300,
+
+            onComplete: () => {
+                el.scaleX = 1;
+                el.open();
+            }
+        })
+    }
+
+    closeAnimationCard(el) {
+        const tween = el.scene.tweens.add({
+            targets: el,
+            scaleX: 0,
+            ease: 'easeInOutCirc',
+            duration: 300,
+
+            onComplete: () => {
+                el.scaleX = 1;
+                el.closeCard();
+                this.enableInteractiveCard();
+            }
+        })
     }
 }
