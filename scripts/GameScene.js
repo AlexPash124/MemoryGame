@@ -55,8 +55,8 @@ export default class GameScene extends Phaser.Scene {
         for (let row = 0; row < ROWS; row++) {
             for (let col = 0; col < COLS; col++) {
                 const position = {
-                    x: offsetX + col * cardWidth,
-                    y: offsetY + row * cardHeight,
+                    x: offsetX + col * cardWidth + 175,
+                    y: offsetY + row * cardHeight + 175,
                 };
                 positions.push(position);
             }
@@ -109,8 +109,8 @@ export default class GameScene extends Phaser.Scene {
 
     winn() {
         this.listGameCards.forEach(card => {
-            card.closeCard();
             card.isOpen = false;
+            this.closeAnimationCard(card);
         });
     }
 
@@ -126,30 +126,29 @@ export default class GameScene extends Phaser.Scene {
         });
     }
 
-    flipCardAnimationOpen(el) {
-        const tween = el.scene.tweens.add({
+    async flipCardAnimationOpen(el) {
+        el.scene.tweens.add({
             targets: el,
-            scaleX: 0,
-            ease: 'easeInOutCirc',
-            duration: 300,
-
-            onComplete: () => {
-                el.scaleX = 1;
-                el.open();
-            }
+            props: {
+                scaleX: { value: 0, duration: 150, yoyo: true },
+                texture: { value: "card" + el.value, duration: 0, delay: 150 }
+            },
+            ease: 'Linear'
         })
+
     }
 
     closeAnimationCard(el) {
         const tween = el.scene.tweens.add({
             targets: el,
-            scaleX: 0,
-            ease: 'easeInOutCirc',
-            duration: 300,
+            props: {
+                scaleX: { value: 0, duration: 150, yoyo: true },
+                texture: { value: "card", duration: 0, delay: 150 }
+            },
+            ease: 'Linear',
 
             onComplete: () => {
-                el.scaleX = 1;
-                el.closeCard();
+                el.setInteractive();
                 this.enableInteractiveCard();
             }
         })
