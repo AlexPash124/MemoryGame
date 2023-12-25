@@ -1,4 +1,4 @@
-import {CARDS_ID, COLS, NUMBER_CARDS, NUMBER_ID, NUMBER_REPETITIONS, ROWS} from "./config.js";
+import {CARDS_ID, COLS, NUMBER_CARDS, NUMBER_ID, NUMBER_REPETITIONS, ROWS, WIDTH_CARD} from "./config.js";
 import {Card} from "./Card.js";
 import setAnimationTimeout from "./utils.js";
 
@@ -55,8 +55,8 @@ export default class GameScene extends Phaser.Scene {
         for (let row = 0; row < ROWS; row++) {
             for (let col = 0; col < COLS; col++) {
                 const position = {
-                    x: offsetX + col * cardWidth + 175,
-                    y: offsetY + row * cardHeight + 175,
+                    x: offsetX + col * cardWidth + WIDTH_CARD / 2,
+                    y: offsetY + row * cardHeight + WIDTH_CARD / 2,
                 };
                 positions.push(position);
             }
