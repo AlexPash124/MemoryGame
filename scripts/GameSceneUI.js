@@ -1,8 +1,12 @@
-import {CARDS_ID, COLS, NUMBER_CARDS, NUMBER_ID, NUMBER_REPETITIONS, ROWS, WIDTH_CARD} from "./config.js";
+import {CARDS_ID, COLS, NUMBER_CARDS, NUMBER_ID, NUMBER_REPETITIONS, ROWS, screenConfig, WIDTH_CARD} from "./config.js";
 import {Card} from "./Card.js";
 import setAnimationTimeout from "./utils.js";
+import {Timer} from "./Timer.js";
+import {EventDispatcher} from "./Event.js";
 
-export default class GameScene extends Phaser.Scene {
+export default class GameSceneUI extends Phaser.Scene {
+    timer;
+
     constructor() {
         super("MainGame");
     }
@@ -21,6 +25,15 @@ export default class GameScene extends Phaser.Scene {
     create = () => {
         this.createBg();
         this.createCards();
+
+        this.initTimer();
+
+        this.addLoseEvent();
+    }
+
+    initTimer() {
+        this.timer = new Timer(this);
+        this.timer.initTextTimer();
     }
 
     createBg() {
@@ -76,7 +89,9 @@ export default class GameScene extends Phaser.Scene {
     async addEventCards() {
         this.listGameCards.forEach(card => {
             card.on("pointerdown", async () => {
-                //card.open();
+                if (!this.timer.isTimerStart) {
+                    this.timer.timerStart();
+                }
                 this.flipCardAnimationOpen(card);
                 this.openCards.push(card);
                 if (this.openCards.length > 1) {
@@ -130,27 +145,43 @@ export default class GameScene extends Phaser.Scene {
         el.scene.tweens.add({
             targets: el,
             props: {
-                scaleX: { value: 0, duration: 150, yoyo: true },
-                texture: { value: "card" + el.value, duration: 0, delay: 150 }
+                scaleX: {value: 0, duration: 150, yoyo: true},
+                texture: {value: "card" + el.value, duration: 0, delay: 150}
             },
             ease: 'Linear'
         })
 
     }
 
-    closeAnimationCard(el) {
-        const tween = el.scene.tweens.add({
-            targets: el,
+    closeAnimationCard(card) {
+        card.scene.tweens.add({
+            targets: card,
             props: {
-                scaleX: { value: 0, duration: 150, yoyo: true },
-                texture: { value: "card", duration: 0, delay: 150 }
+                scaleX: {value: 0, duration: 150, yoyo: true},
+                texture: {value: "card", duration: 0, delay: 150}
             },
             ease: 'Linear',
 
             onComplete: () => {
-                el.setInteractive();
+                card.setInteractive();
                 this.enableInteractiveCard();
+                card.isOpen = false;
             }
         })
+    }
+
+    addLoseEvent() {
+        const emitter = EventDispatcher.getInstance();
+        emitter.on("Lose", () => {
+            this.resetCard();
+        })
+    }
+
+    resetCard() {
+        this.disableInteractiveCard();
+        this.listGameCards.forEach(card => {
+            this.closeAnimationCard(card);
+            card.isOpen = false;
+        });
     }
 }

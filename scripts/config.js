@@ -12,3 +12,5 @@ export const NUMBER_ID = 5;
 export const NUMBER_REPETITIONS = 2;
 
 export const WIDTH_CARD = 350;
+
+export const TIMER_DELAY = 20;
