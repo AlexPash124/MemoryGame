@@ -14,6 +14,11 @@ export default class GameSceneUI extends Phaser.Scene {
     openCards = [];
     listGameCards = [];
     numberOpenCards = 0;
+    soundBack;
+    soundClick;
+    lowWin;
+    emitter;
+    isFinishGame = false;
     preload = () => {
         this.load.image("bg", "assets/img/back/back.jpg");
         this.load.image("card", "assets/img/cards/wrapper_card.png");
@@ -21,6 +26,11 @@ export default class GameSceneUI extends Phaser.Scene {
         for (let i = 0; i < NUMBER_CARDS / 2; i++) {
             this.load.image("card" + (i + 1), "assets/img/cards/card_" + (i + 1) + ".png");
         }
+
+        this.load.audio("back", "assets/sounds/game_back.mp3");
+        this.load.audio("click", "assets/sounds/btn_click.mp3");
+        this.load.audio("lowWin", "assets/sounds/low_win.mp3");
+        this.load.audio("winSound", "assets/sounds/win.mp3");
     }
     create = () => {
         this.createBg();
@@ -29,6 +39,27 @@ export default class GameSceneUI extends Phaser.Scene {
         this.initTimer();
 
         this.addLoseEvent();
+
+        this.createSounds();
+    }
+
+    createSounds() {
+        this.soundBack = this.sound.add("back", {
+            loop: true,
+        });
+        this.soundBack.play();
+
+        this.soundClick = this.sound.add("click", {
+            loop: false,
+        });
+
+        this.lowWin = this.sound.add("lowWin", {
+            loop: false,
+        });
+
+        this.winSound = this.sound.add("winSound", {
+            loop: false,
+        });
     }
 
     initTimer() {
@@ -86,47 +117,57 @@ export default class GameSceneUI extends Phaser.Scene {
         CARDS_ID.sort(() => Math.round(Math.random() * 100) - 50);
     }
 
-    async addEventCards() {
+    addEventCards() {
         this.listGameCards.forEach(card => {
             card.on("pointerdown", async () => {
+                if (this.isFinishGame) return;
+                this.disableInteractiveCard();
+                this.soundClick.play();
                 if (!this.timer.isTimerStart) {
                     this.timer.timerStart();
                 }
                 this.flipCardAnimationOpen(card);
+                card.isOpen = true;
+                await setAnimationTimeout(500);
                 this.openCards.push(card);
                 if (this.openCards.length > 1) {
                     if (this.openCards[0].value !== this.openCards[1].value) {
-                        this.disableInteractiveCard();
-                        await setAnimationTimeout(800);
-                        this.closeAnimationCard(this.openCards[0]);
-                        this.closeAnimationCard(this.openCards[1]);
-                        this.openCards.length = 0;
-
+                        await this.openCardsRevealed();
                     } else {
-                        this.openCards[0].isOpen = true;
-                        this.openCards[1].isOpen = true;
-
-                        this.disableInteractiveCard();
+                        this.lowWin.play();
                         await setAnimationTimeout(800);
-                        this.enableInteractiveCard();
                         this.openCards.length = 0;
                         this.numberOpenCards++;
                         if (this.numberOpenCards === NUMBER_ID) {
-                            await setAnimationTimeout(800);
-                            this.enableInteractiveCard();
-                            this.winn();
+                            await this.openCardsNoRevealed();
                         }
                     }
+                    this.openCards.length = 0;
+                    this.resetScaleXCard();
                 }
+                this.enableInteractiveCard();
             })
         })
     }
 
-    winn() {
-        this.listGameCards.forEach(card => {
-            card.isOpen = false;
-            this.closeAnimationCard(card);
-        });
+    async openCardsRevealed() {
+        this.openCards[0].isOpen = true;
+        this.openCards[1].isOpen = true;
+        await setAnimationTimeout(300);
+        this.closeAnimationCard(this.openCards[0]);
+        this.closeAnimationCard(this.openCards[1]);
+        await setAnimationTimeout(500);
+    }
+
+    async openCardsNoRevealed() {
+        this.winSound.play();
+        this.isFinishGame = true;
+        this.emitter = EventDispatcher.getInstance();
+        this.emitter.emit("Win", "");
+        await setAnimationTimeout(800);
+        this.enableInteractiveCard();
+        this.winn();
+        this.isFinishGame = false;
     }
 
     disableInteractiveCard() {
@@ -141,16 +182,19 @@ export default class GameSceneUI extends Phaser.Scene {
         });
     }
 
-    async flipCardAnimationOpen(el) {
+    flipCardAnimationOpen(el) {
+        el.disableInteractive();
         el.scene.tweens.add({
             targets: el,
             props: {
                 scaleX: {value: 0, duration: 150, yoyo: true},
                 texture: {value: "card" + el.value, duration: 0, delay: 150}
             },
-            ease: 'Linear'
+            ease: "Linear",
+            onComplete: () => {
+                el.scaleX = 1;
+            }
         })
-
     }
 
     closeAnimationCard(card) {
@@ -161,27 +205,48 @@ export default class GameSceneUI extends Phaser.Scene {
                 texture: {value: "card", duration: 0, delay: 150}
             },
             ease: 'Linear',
-
             onComplete: () => {
-                card.setInteractive();
-                this.enableInteractiveCard();
                 card.isOpen = false;
+                card.scaleX = 1;
             }
         })
     }
 
     addLoseEvent() {
-        const emitter = EventDispatcher.getInstance();
-        emitter.on("Lose", () => {
+        this.emitter = EventDispatcher.getInstance();
+        this.emitter.on("Lose", () => {
+            this.isFinishGame = true;
             this.resetCard();
+            this.numberOpenCards = 0;
         })
     }
 
-    resetCard() {
+    winn() {
+        this.listGameCards.forEach(card => {
+            card.isOpen = false;
+            this.closeAnimationCard(card);
+        });
+        this.numberOpenCards = 0;
+        this.openCards.length = 0;
+    }
+
+    async resetCard() {
         this.disableInteractiveCard();
         this.listGameCards.forEach(card => {
             this.closeAnimationCard(card);
             card.isOpen = false;
+        });
+
+        this.openCards.length = 0;
+
+        await setAnimationTimeout(1000);
+        this.isFinishGame = false;
+        this.enableInteractiveCard();
+    }
+
+    resetScaleXCard() {
+        this.listGameCards.forEach(card => {
+            card.scaleX = 1;
         });
     }
 }

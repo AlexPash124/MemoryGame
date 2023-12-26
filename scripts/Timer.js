@@ -7,7 +7,7 @@ export class Timer {
     timerDelay = TIMER_DELAY;
     context;
     isTimerStart = false;
-
+    isFinish = false;
     constructor(context) {
         this.context = context;
     }
@@ -18,6 +18,8 @@ export class Timer {
         this.textDelay.setFontSize(50);
         this.updateTextDelay();
         this.textDelay.setPosition(screenConfig.WIDTH / 2, 50);
+
+        this.addWinEvent();
     }
 
     async timerStart() {
@@ -28,6 +30,7 @@ export class Timer {
         }
         this.isTimerStart = true;
         await setAnimationTimeout(1000);
+        if (this.isFinish) return;
         this.timerDelay--;
         this.updateTextDelay();
 
@@ -41,13 +44,29 @@ export class Timer {
     async lose() {
         const emitter = EventDispatcher.getInstance();
         emitter.emit("Lose", "");
-
-        await setAnimationTimeout(800);
+        this.isFinish = true;
+        await setAnimationTimeout(1000);
         this.resetTimer();
     }
 
     resetTimer() {
+        this.isTimerStart = false;
+        this.isFinish = false;
         this.timerDelay = TIMER_DELAY;
-        this.updateTextDelay();
+        //this.updateTextDelay();
+    }
+
+    addWinEvent() {
+        this.emitter = EventDispatcher.getInstance();
+        this.emitter.on("Win", () => {
+            this.winGame();
+        })
+    }
+
+    async winGame() {
+        this.isFinish = true;
+        this.textDelay.text = "You Win";
+        await setAnimationTimeout(1000);
+        this.resetTimer();
     }
 }
